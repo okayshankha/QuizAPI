@@ -1,9 +1,9 @@
-import { validate, validateOrReject, Contains, IsInt, Length, IsEmail, IsFQDN, IsDate, Min, Max, IsOptional, IsNumberString } from "class-validator";
+import { IsOptional, IsNumberString } from "class-validator";
 
 export class FetchAllQuestions {
     @IsNumberString()
     @IsOptional()
-    category_id?: number;
+    category_slug?: number;
 
     @IsNumberString()
     @IsOptional()

@@ -21,9 +21,9 @@ export class Questions {
     @Column("text")
     explaination: String;
 
-    @ManyToOne(type => Categories)
-    @Column("int")
-    category_id: Number;
+    @ManyToOne(type => Categories, category => category.slug) category: Categories
+    @Column("text")
+    category_slug: String;
 
     @Column("boolean", { default: true })
     is_active: boolean;

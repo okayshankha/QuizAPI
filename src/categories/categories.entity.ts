@@ -7,10 +7,13 @@ export class Categories {
     id: Number;
 
     @ManyToOne(type => Categories)
-    @Column("int", {default: null})
+    @Column("int", { default: null })
     parent_id: Number;
 
-    @Column( {unique: true})
+    @Column({ default: null, unique: true })
+    slug: String;
+
+    @Column()
     name: String;
 
     @Column("text")

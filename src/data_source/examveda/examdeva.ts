@@ -2,7 +2,7 @@ import fetch from 'node-fetch';
 import * as htmlParser from 'node-html-parser';
 
 export class Examdeva {
-    parse(url: string, category_id: Number): Promise<any[]> {
+    parse(url: string, category_slug: string): Promise<any[]> {
         return fetch(url)
             .then(res => res.text())
             .then(body => {
@@ -71,7 +71,7 @@ export class Examdeva {
                             QuestionJson.explaination = correctAnswerExplaination;
                         }
 
-                        QuestionJson.category_id = category_id;
+                        QuestionJson.category_slug = category_slug;
 
                         /**
                          * Add All Questions

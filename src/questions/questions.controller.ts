@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, Put, Delete, Param, Query } from '@nestjs/common';
+import { Controller, Post, Body, Get, Put, Delete, Param, Query, Headers, HttpException, HttpStatus } from '@nestjs/common';
 import { Examdeva } from 'src/data_source/examveda/examdeva';
 import { UtillsService } from 'src/utills/utills.service';
 import { QuestionsService } from './questions.service';
@@ -21,7 +21,7 @@ export class QuestionsController {
     }
 
     @Get(':id')
-    async get(@Param() params : {id: string}) {
+    async get(@Param() params: { id: string }) {
         return this.utills.singleResultWarp(await this.service.getQuestion(params.id));
     }
 
@@ -37,41 +37,47 @@ export class QuestionsController {
     }
 
     @Post('/load_from_url')
-    async loadFromUrl(@Body() payload) {
-        let parser: any = undefined
-        let url: String = new String(payload.url);
-        if (url.search('examveda.com')) {
-            parser = new Examdeva();
+    async loadFromUrl(@Body() payload, @Headers() headers) {
+        let func = async () => {
+            let parser: any = undefined
+            let url: String = new String(payload.url);
+            if (url.search('examveda.com')) {
+                parser = new Examdeva();
+            }
+
+            return await parser.parse(payload.url, payload.category_id).then(async data => {
+
+                let insertCount: number = 0;
+                let errorResponse: any[] = [];
+                for (let index = 0; index < data.length; index++) {
+                    const element = data[index];
+                    let {body}: any = await got.post('http://localhost:3000/questions', {
+                        json: element
+                    })
+
+                    let response = JSON.parse(body);
+                    if (response.status) {
+                        insertCount++;
+                    } else {
+                        errorResponse.push(response);
+                    }
+                }
+
+                return {
+                    status: true,
+                    insert_count: insertCount,
+                    error_count: errorResponse.length,
+                    error_responses: errorResponse
+                }
+            });
         }
 
-        return await parser.parse(payload.url, payload.category_id).then(async data => {
-
-            let insertCount: number = 0;
-            let errorResponse: any[] = [];
-            for (let index = 0; index < data.length; index++) {
-                const element = data[index];
-                console.log(element);
-
-                let response: any = await got.post('http://localhost:3000/questions', {
-                    json: element
-                })
-
-                console.log(JSON.stringify(response.body));
-
-                if (response.body.status) {
-                    insertCount++;
-                } else {
-                    errorResponse.push(JSON.parse(response.body));
-                }
+        if (headers && headers.authorization) {
+            if (headers.authorization == "Bearer c965f7b686cbe55471d1968f35d416496eb2980b27f535f603c34442f699fe53") {
+                return func();
             }
-
-            return {
-                status: true,
-                insert_count: insertCount,
-                error_count: errorResponse.length,
-                error_responses: errorResponse
-            }
-        });
+        }
+        throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
     }
 
 

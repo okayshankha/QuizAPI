@@ -13,7 +13,7 @@ export class QuestionsService {
 
     async insertQuestion(question): Promise<any[]> {
         question.created_at = question.updated_at = moment().unix()
-        question.hash = md5(question.question + question.category_id)
+        question.hash = md5(question.question + question.category_slug)
         question.options = JSON.stringify(question.options)
 
         let result = await getConnection()
@@ -48,7 +48,7 @@ export class QuestionsService {
         filter.is_active = 1;
 
         if (query.category_id) {
-            filter.category_id = query.category_id
+            filter.category_slug = query.category_slug
         }
 
         let limit = (query.perPage && query.perPage > 0 && query.perPage <= 50) ? query.perPage : 10;
@@ -57,7 +57,7 @@ export class QuestionsService {
         let skip = limit * (page - 1)
 
         let questions = await this.QuestionsRepository.find({
-            select: ["question", "options", "correct_option", "explaination", "hash", "created_at", "updated_at", "category_id"],
+            select: ["question", "options", "correct_option", "explaination", "hash", "created_at", "updated_at", "category_slug"],
             where: [filter],
             take: limit,
             skip: skip
@@ -73,7 +73,7 @@ export class QuestionsService {
 
     async getQuestion(_id: string): Promise<QuestionsRepository[]> {
         let questions = await this.QuestionsRepository.find({
-            select: ["question", "options", "correct_option", "explaination", "hash", "created_at", "updated_at", "category_id"],
+            select: ["question", "options", "correct_option", "explaination", "hash", "created_at", "updated_at", "category_slug"],
             where: [{ "hash": _id, "is_active": 1 }]
         });
 

@@ -2,6 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as moment from 'moment';
 import { getConnection, Repository } from 'typeorm';
+import slugify from 'slugify';
+
 import { Categories as CategoriesRepository } from './categories.entity';
 
 @Injectable()
@@ -10,36 +12,50 @@ export class CategoriesService {
         @InjectRepository(CategoriesRepository) private CategoriesRepository: Repository<CategoriesRepository>
     ) { }
 
+    private getIdBySlug(slug?: string){
+        if(!slug) return null;
+
+        return this.CategoriesRepository.findOne({
+            select: ["id"],
+            where: [{ "slug": slug }]
+        });
+    }
+
     async getCategories(): Promise<CategoriesRepository[]> {
         let result: any[] = await this.CategoriesRepository.find({
-            select: ["id", "name", "description", "created_at", "updated_at"],
+            select: ["id", "name", "slug", "description", "created_at", "updated_at"],
             where: [{ "parent_id": null }]
         });
 
+        console.log(result);
+        
+
         for (let i = 0; i < result.length; i++) {
-            result[i].subcategory_count = (await this.getSubcategories(result[i].id)).length
+            result[i].subcategory_count = (await this.getSubcategories(result[i].slug)).length
         }
 
         return result;
     }
 
-    async getCategory(_id: number): Promise<CategoriesRepository[]> {
+    async getCategory(slug: string): Promise<CategoriesRepository[]> {
         let result: any = await this.CategoriesRepository.find({
-            select: ["id", "name", "description", "created_at", "updated_at"],
-            where: [{ "id": _id }]
+            select: ["id", "name", "slug", "description", "created_at", "updated_at"],
+            where: [{ "slug": slug }]
         });
 
         for (let i = 0; i < result.length; i++) {
-            result[i].subcategory_count = (await this.getSubcategories(result[i].id)).length
+            result[i].subcategory_count = (await this.getSubcategories(result[i].slug)).length
         }
 
         return result;
     }
 
-    async getSubcategories(_id: number): Promise<CategoriesRepository[]> {
+    async getSubcategories(slug: string): Promise<CategoriesRepository[]> {
+        let parentID = await this.getIdBySlug(slug);
+
         let result: any = await this.CategoriesRepository.find({
-            select: ["id", "name", "description", "created_at", "updated_at"],
-            where: [{ "parent_id": _id }]
+            select: ["id", "name", "slug", "description", "created_at", "updated_at"],
+            where: [{ "parent_id": parentID }]
         });
 
         for (let i = 0; i < result.length; i++) {
@@ -51,6 +67,12 @@ export class CategoriesService {
 
     async insertCategory(category): Promise<any[]> {
         category.created_at = category.updated_at = moment().unix()
+
+        let parentID = await this.getIdBySlug(category.parent_slug)
+
+        let slug = parentID ? `${category.name}#${parentID}` : category.name
+
+        category.slug = slugify(slug).toLowerCase();
 
         let result = await getConnection()
             .createQueryBuilder()
